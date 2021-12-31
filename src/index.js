@@ -9,20 +9,44 @@ app.use(cors());
 
 const users = [];
 
+const checkUser = (field, value) => {
+  const user = users.find(user => user[field] === value);
+  return [!!user, user];
+}
+
 function checksExistsUserAccount(request, response, next) {
-  // Complete aqui
+  const [exists, user] = checkUser('username', request.headers.username);
+  if (!exists) return response.status(404).json({'error': 'User not found'});
+  request.user = user;
+  return next();
 }
 
 function checksCreateTodosUserAvailability(request, response, next) {
-  // Complete aqui
+  const {user} = request;
+  const canCreateTodo = user.pro || user.todos.length < 10
+  if (!canCreateTodo) return response.status(403).json({'error': 'Max todos for free account reached!'})
+  return next();
 }
 
 function checksTodoExists(request, response, next) {
-  // Complete aqui
+  const [exists, user] = checkUser('username', request.headers.username);
+  if (!exists) return response.status(404).json({'error': 'User not found!'});
+  const todoId = request.params.id;
+  if (!validate(todoId)) return response.status(400).json({'error': 'Invalid id format!'});
+  const todo = user.todos.find(todo => todo.id === todoId);
+  if (!todo) return response.status(404).json({'error': 'Todo not found!'});
+  request.todo = todo;
+  request.user = user;
+  return next();
 }
 
 function findUserById(request, response, next) {
-  // Complete aqui
+  const userId = request.params.id;
+  if (!validate(userId)) return response.status(400).json({'error': 'Invalid id format!'});
+  const [exists, user] = checkUser('id', userId);
+  if (!exists) return response.status(404).json({'error': 'User not found'});
+  request.user = user
+  return next();
 }
 
 app.post('/users', (request, response) => {
